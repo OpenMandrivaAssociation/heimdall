@@ -12,6 +12,7 @@ URL:		http://www.glassechidna.com.au/products/%{name}/
 Source:		http://www.glassechidna.com.au/products/%{name}/%{name}-%{version}-source.zip
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
 BuildRequires:	usb1.0-devel
+BuildRequires:	dos2unix
 
 %description
 Heimdall is a cross-platform open-source utility to flash firmware (aka ROMs)
