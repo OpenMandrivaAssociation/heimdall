@@ -67,7 +67,7 @@ popd
 # udev rule
 mkdir -p %{buildroot}%{udev_rules_dir}
 cat > %{buildroot}%{udev_rules_dir}/60-heimdall-galaxy-s.rules << EOF
-SUBSYSTEM=="usb", SYSFS{idVendor}=="04e8", SYSFS{idProduct}=="6601", MODE="0666" 
+SUBSYSTEM=="usb", ATTR{idVendor}=="04e8", ATTR{idProduct}=="6601", MODE="0666" 
 EOF
 
 # desktop file
