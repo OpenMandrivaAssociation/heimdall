@@ -1,5 +1,5 @@
 %define name	heimdall
-%define version	1.1.0
+%define version	1.1.1
 %define release	%mkrel 1
 
 %define udev_rules_dir /lib/udev/rules.d
@@ -11,8 +11,7 @@ Summary:	Flash firmware (aka ROMs) onto Samsung Galaxy S devices
 Group:		Development/Other
 License:	MIT
 URL:		http://www.glassechidna.com.au/products/%{name}/
-#Sources from github, no reasonable tarball, yet..
-Source:		http://download.github.com/Benjamin-Dobell-Heimdall-400e41e.tar.gz
+Source:		http://cloud.github.com/downloads/Benjamin-Dobell/Heimdall/%{name}-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
 BuildRequires:	usb1.0-devel
 BuildRequires:	dos2unix
@@ -34,13 +33,13 @@ onto Samsung Galaxy S devices.
 This package provides Qt4 based frontend for %{name}.
 
 %prep
-%setup -q -n Benjamin-Dobell-Heimdall-400e41e
+%setup -q
 
 #fix EOLs
 dos2unix Linux/README
 
 #fix frontend install
-sed -i -e 's|\(DESIREDINSTALLDIR =\).*|\1%{_bindir}|' heimdall-frontend/heimdall-frontend.pro
+sed -i -e 's|/usr/local/bin|%{_bindir}|g' heimdall-frontend/heimdall-frontend.pro
 
 %build 
 pushd heimdall
