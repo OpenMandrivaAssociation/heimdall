@@ -1,5 +1,5 @@
 %define name	heimdall
-%define version	1.1.1
+%define version	1.3.1
 %define release	%mkrel 1
 
 %define udev_rules_dir /lib/udev/rules.d
@@ -11,9 +11,12 @@ Summary:	Flash firmware (aka ROMs) onto Samsung Galaxy S devices
 Group:		Development/Other
 License:	MIT
 URL:		http://www.glassechidna.com.au/products/%{name}/
-Source:		http://cloud.github.com/downloads/Benjamin-Dobell/Heimdall/%{name}-%{version}.tar.gz
+# Source has to be generated from https://github.com/Benjamin-Dobell/Heimdall/tree/v1.3.1
+# using git archive --format tar --prefix heimdall-1.3.1/ -o heimdall-1.3.1.tar v1.3.1
+Source:		%{name}-%{version}.tar.xz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
-BuildRequires:	usb1.0-devel
+Patch0:		heimdall-1.3.1-no-root.patch
+BuildRequires:	pkgconfig(libusb-1.0)
 BuildRequires:	dos2unix
 BuildRequires:	qt4-devel
 
@@ -34,6 +37,7 @@ This package provides Qt4 based frontend for %{name}.
 
 %prep
 %setup -q
+%apply_patches
 
 #fix EOLs
 dos2unix Linux/README
@@ -42,15 +46,20 @@ dos2unix Linux/README
 sed -i -e 's|/usr/local/bin|%{_bindir}|g' heimdall-frontend/heimdall-frontend.pro
 
 %build 
-pushd heimdall
+cd libpit
+	%configure
+	%make
+cd ..
+cd heimdall
+	./autogen.sh --help || :
 	%configure2_5x
 	%make V=1
-popd
+cd ..
 
-pushd heimdall-frontend
+cd heimdall-frontend
 	%qmake_qt4 heimdall-frontend.pro 
 	%make V=1
-popd
+cd ..
 
 %install
 rm -rf %{buildroot}
@@ -85,6 +94,12 @@ EOF
 
 %clean
 rm -rf %{buildroot}
+
+%post
+udevadm control --reload
+
+%postun
+udevadm control --reload
 
 %files
 %defattr(-,root,root)
