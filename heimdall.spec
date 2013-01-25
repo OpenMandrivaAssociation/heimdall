@@ -1,21 +1,23 @@
-%define name	heimdall
-%define version	1.3.1
-%define release	%mkrel 1
+%define prerel RC2
 
 %define udev_rules_dir /lib/udev/rules.d
 
-Name:		%{name}
-Version:	%{version}
-Release:	%{release}
+Name:		heimdall
+Version:	1.4.1
+%if "%prerel" != ""
+Release:	0.%prerel.1
+%else
+Release:	1
+%endif
 Summary:	Flash firmware (aka ROMs) onto Samsung Galaxy S devices
 Group:		Development/Other
 License:	MIT
 URL:		http://www.glassechidna.com.au/products/%{name}/
 # Source has to be generated from https://github.com/Benjamin-Dobell/Heimdall/tree/v1.3.1
-# using git archive --format tar --prefix heimdall-1.3.1/ -o heimdall-1.3.1.tar v1.3.1
-Source:		%{name}-%{version}.tar.xz
-BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Patch0:		heimdall-1.3.1-no-root.patch
+# using:
+# git clone git://github.com/Benjamin-Dobell/Heimdall.git
+# git archive --format tar --prefix heimdall-1.4.1/ -o heimdall-1.4.1RC2.tar v1.4.1RC2
+Source0:	%{name}-%{version}%prerel.tar.xz
 BuildRequires:	pkgconfig(libusb-1.0)
 BuildRequires:	dos2unix
 BuildRequires:	qt4-devel
@@ -62,8 +64,6 @@ cd heimdall-frontend
 cd ..
 
 %install
-rm -rf %{buildroot}
-
 pushd heimdall
 	%makeinstall_std
 popd
@@ -91,9 +91,6 @@ Terminal=false
 Type=Application
 Categories=Qt;Utility;
 EOF
-
-%clean
-rm -rf %{buildroot}
 
 %post
 udevadm control --reload
