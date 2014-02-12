@@ -1,4 +1,4 @@
-%define prerel RC2
+%define prerel RC3
 
 %define udev_rules_dir /lib/udev/rules.d
 
@@ -100,35 +100,13 @@ udevadm control --reload
 
 %files
 %defattr(-,root,root)
-%doc Linux/README heimdall/LICENSE
+%doc Linux/README
 %{_bindir}/%{name}
+%{udev_rules_dir}/60-heimdall.rules
 %{udev_rules_dir}/60-heimdall-galaxy-s.rules
 
 %files frontend
 %defattr(-,root,root)
-%doc Linux/README heimdall/LICENSE
+%doc Linux/README
 %{_bindir}/%{name}-frontend
 %{_datadir}/applications/mandriva-%{name}.desktop
-
-
-%changelog
-* Tue Sep 11 2012 Bernhard Rosenkraenzer <bero@bero.eu> 1.3.1-1mdv2012.0
-+ Revision: 816803
-- Update to 1.3.1
-- Don't require root privileges during %%install
-
-* Wed Dec 22 2010 Jani Välimaa <wally@mandriva.org> 1.1.1-1mdv2011.0
-+ Revision: 623913
-- new version 1.1.1
-- update udev rule
-
-* Sun Dec 05 2010 Jani Välimaa <wally@mandriva.org> 1.1.0-1mdv2011.0
-+ Revision: 610718
-- new version 1.1.0
-- add udev rule to handle device rights after plug in
-- introduce new heimdall-frontend package
-
-* Mon Nov 01 2010 Jani Välimaa <wally@mandriva.org> 1.0.0-1mdv2011.0
-+ Revision: 591515
-- import heimdall
-
