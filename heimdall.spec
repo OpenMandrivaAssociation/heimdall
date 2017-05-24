@@ -25,6 +25,7 @@ BuildRequires:	ninja
 BuildRequires:	cmake(Qt5Core)
 BuildRequires:	cmake(Qt5Gui)
 BuildRequires:	cmake(Qt5Widgets)
+BuildRequires:	qt5-macros
 
 %description
 Heimdall is a cross-platform open-source utility to flash firmware (aka ROMs)
