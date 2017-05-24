@@ -1,13 +1,13 @@
-%define prerel RC3
+%define prerel %{nil}
 
 %define udev_rules_dir /lib/udev/rules.d
 
 Name:		heimdall
-Version:	1.4.1
+Version:	1.4.2
 %if "%prerel" != ""
 Release:	0.%prerel.1
 %else
-Release:	2
+Release:	1
 %endif
 Summary:	Flash firmware (aka ROMs) onto Samsung Galaxy S devices
 Group:		Development/Other
@@ -17,71 +17,53 @@ URL:		http://www.glassechidna.com.au/products/%{name}/
 # using:
 # git clone git://github.com/Benjamin-Dobell/Heimdall.git
 # git archive --format tar --prefix heimdall-1.4.1/ -o heimdall-1.4.1RC2.tar v1.4.1RC2
-Source0:	%{name}-%{version}%prerel.tar.xz
+Source0:	https://github.com/Benjamin-Dobell/Heimdall/archive/v%{version}.tar.gz
 BuildRequires:	pkgconfig(libusb-1.0)
 BuildRequires:	dos2unix
-BuildRequires:	qt4-devel
+BuildRequires:	cmake
+BuildRequires:	ninja
+BuildRequires:	cmake(Qt5Core)
+BuildRequires:	cmake(Qt5Gui)
+BuildRequires:	cmake(Qt5Widgets)
 
 %description
 Heimdall is a cross-platform open-source utility to flash firmware (aka ROMs)
 onto Samsung Galaxy S devices.
 
 %package frontend
-Summary:	Qt4 based frontend for %{name}
+Summary:	Qt based frontend for %{name}
 Group:		Graphical desktop/KDE
 Requires:	%{name} = %{version}-%{release}
 
 %description frontend
 Heimdall is a cross-platform open-source utility to flash firmware (aka ROMs)
-onto Samsung Galaxy S devices.
+onto Samsung Galaxy devices.
 
-This package provides Qt4 based frontend for %{name}.
+This package provides Qt based frontend for %{name}.
 
 %prep
-%setup -q
+%setup -qn Heimdall-%{version}
 %apply_patches
 
 #fix EOLs
 dos2unix Linux/README
 
-#fix frontend install
-sed -i -e 's|/usr/local/bin|%{_bindir}|g' heimdall-frontend/heimdall-frontend.pro
+%cmake_qt5 -G Ninja
 
 %build 
-cd libpit
-	%configure
-	%make
-cd ..
-cd heimdall
-	./autogen.sh --help || :
-	%configure2_5x
-	%make V=1
-cd ..
-
-cd heimdall-frontend
-	%qmake_qt4 heimdall-frontend.pro 
-	%make V=1
-cd ..
+%ninja -C build
 
 %install
-pushd heimdall
-	%makeinstall_std
-popd
+mkdir -p %{buildroot}%{_bindir}
+cp -a build/bin/* %{buildroot}%{_bindir}
 
-pushd heimdall-frontend
-	%make INSTALL_ROOT=%{buildroot} install
-popd
-
-# udev rule
 mkdir -p %{buildroot}%{udev_rules_dir}
-cat > %{buildroot}%{udev_rules_dir}/60-heimdall-galaxy-s.rules << EOF
-SUBSYSTEM=="usb", ATTR{idVendor}=="04e8", ATTR{idProduct}=="6601", MODE="0666" 
-EOF
+cp heimdall/*.rules %{buildroot}%{udev_rules_dir}/
 
 # desktop file
 # TODO: better icon
 mkdir -p %{buildroot}%{_datadir}/applications/
-cat > %{buildroot}%{_datadir}/applications/mandriva-heimdall.desktop << EOF
+cat > %{buildroot}%{_datadir}/applications/heimdall.desktop << EOF
 [Desktop Entry]
 Name=Heimdall
 Comment=Flash firmware (aka ROMs) onto Samsung Galaxy S devices
@@ -102,11 +84,10 @@ udevadm control --reload
 %defattr(-,root,root)
 %doc Linux/README
 %{_bindir}/%{name}
-%{udev_rules_dir}/60-heimdall.rules
-%{udev_rules_dir}/60-heimdall-galaxy-s.rules
+%{udev_rules_dir}/*.rules
 
 %files frontend
 %defattr(-,root,root)
 %doc Linux/README
 %{_bindir}/%{name}-frontend
-%{_datadir}/applications/mandriva-%{name}.desktop
+%{_datadir}/applications/%{name}.desktop
