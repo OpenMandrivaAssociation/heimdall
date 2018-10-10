@@ -7,17 +7,13 @@ Version:	1.4.2
 %if "%prerel" != ""
 Release:	0.%prerel.1
 %else
-Release:	1
+Release:	2
 %endif
 Summary:	Flash firmware (aka ROMs) onto Samsung Galaxy S devices
 Group:		Development/Other
 License:	MIT
 URL:		http://www.glassechidna.com.au/products/%{name}/
-# Source has to be generated from https://github.com/Benjamin-Dobell/Heimdall/tree/v1.3.1
-# using:
-# git clone git://github.com/Benjamin-Dobell/Heimdall.git
-# git archive --format tar --prefix heimdall-1.4.1/ -o heimdall-1.4.1RC2.tar v1.4.1RC2
-Source0:	https://github.com/Benjamin-Dobell/Heimdall/archive/v%{version}.tar.gz
+Source0:	https://gitlab.com/BenjaminDobell/Heimdall/-/archive/v%{version}/Heimdall-v%{version}.tar.bz2
 BuildRequires:	pkgconfig(libusb-1.0)
 BuildRequires:	dos2unix
 BuildRequires:	cmake
@@ -44,8 +40,7 @@ onto Samsung Galaxy devices.
 This package provides Qt based frontend for %{name}.
 
 %prep
-%setup -qn Heimdall-%{version}
-%apply_patches
+%autosetup -p1 -n Heimdall-v%{version}
 
 #fix EOLs
 dos2unix Linux/README
