@@ -28,6 +28,7 @@ BuildRequires:	ninja
 BuildRequires:	cmake(Qt5Core)
 BuildRequires:	cmake(Qt5Gui)
 BuildRequires:	cmake(Qt5Widgets)
+BuildRequires:	pkgconfig(zlib)
 BuildRequires:	qt5-macros
 BuildRequires:	qmake5
 
