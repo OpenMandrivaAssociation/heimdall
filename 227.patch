@@ -1,0 +1,37 @@
+From 02ccbbf8459a67b6a2c894a55a9b8c47e8b62dfd Mon Sep 17 00:00:00 2001
+From: Javad Karabi <karabijavad@gmail.com>
+Date: Sat, 6 Sep 2014 12:51:32 -0500
+Subject: [PATCH] credit to hesem3. 'It seems that the PIT file receive
+ requires empty packet reading before sending the
+ PitFilePacket::kRequestEndTransfer packet'
+
+---
+ heimdall/source/BridgeManager.cpp | 24 ++++++++++++++++++------
+ 1 file changed, 18 insertions(+), 6 deletions(-)
+
+diff --git a/heimdall/source/BridgeManager.cpp b/heimdall/source/BridgeManager.cpp
+index 9b8fdfa..961fdd1 100644
+--- a/heimdall/source/BridgeManager.cpp
++++ b/heimdall/source/BridgeManager.cpp
+@@ -946,6 +946,18 @@ int BridgeManager::ReceivePitFile(unsigned char **pitBuffer) const
+ 		delete receiveFilePartPacket;
+ 	}
+ 
++  Interface::Print("PIT file data received, read 'empty' packet...\n");
++  int dataTransferred = 0;
++  int timeout = 1000;
++  unsigned char* bufferEmpty = (unsigned char*)valloc(1);
++
++  int result = libusb_bulk_transfer(deviceHandle, inEndpoint, bufferEmpty, 1, &dataTransferred, timeout);
++
++  delete bufferEmpty;
++
++  Interface::Print("PIT file data receive completed, send kRequestEndTransfer...\n");
++
++
+ 	// End file transfer
+ 	pitFilePacket = new PitFilePacket(PitFilePacket::kRequestEndTransfer);
+ 	success = SendPacket(pitFilePacket);
+-- 
+GitLab
+

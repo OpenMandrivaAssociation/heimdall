@@ -1,0 +1,61 @@
+From fbdfe5032fc1d076dc172738fd3ca0c8a9a33307 Mon Sep 17 00:00:00 2001
+From: Will Young <lost.networking@gmail.com>
+Date: Wed, 22 Jan 2020 23:54:25 +0100
+Subject: [PATCH] Issue #517 Heimdall set interface failure (errno 110) on 2
+ similar gallaxy y devices
+
+---
+ heimdall/source/BridgeManager.cpp | 22 +++++++++++++++-------
+ 1 file changed, 15 insertions(+), 7 deletions(-)
+
+diff --git a/heimdall/source/BridgeManager.cpp b/heimdall/source/BridgeManager.cpp
+index 1b658c8..dd6c6c8 100644
+--- a/heimdall/source/BridgeManager.cpp
++++ b/heimdall/source/BridgeManager.cpp
+@@ -170,7 +170,8 @@ int BridgeManager::FindDeviceInterface(void)
+ 
+ 	for (int i = 0; i < configDescriptor->bNumInterfaces; i++)
+ 	{
+-		for (int j = 0 ; j < configDescriptor->usb_interface[i].num_altsetting; j++)
++		int numAltSettings = configDescriptor->usb_interface[i].num_altsetting;
++		for (int j = 0 ; j < numAltSettings; j++)
+ 		{
+ 			if (verbose)
+ 			{
+@@ -209,7 +210,8 @@ int BridgeManager::FindDeviceInterface(void)
+ 				&& outEndpointAddress != -1)
+ 			{
+ 				interfaceIndex = i;
+-				altSettingIndex = j;
++				if (numAltSettings > 1)
++					altSettingIndex = j;
+ 				inEndpoint = inEndpointAddress;
+ 				outEndpoint = outEndpointAddress;
+ 			}
+@@ -261,12 +263,18 @@ bool BridgeManager::SetupDeviceInterface(void)
+ {
+ 	Interface::Print("Setting up interface...\n");
+ 
+-	int result = libusb_set_interface_alt_setting(deviceHandle, interfaceIndex, altSettingIndex);
+-
+-	if (result != LIBUSB_SUCCESS)
++	if (altSettingIndex >= 0)
+ 	{
+-		Interface::PrintError("Setting up interface failed!\n");
+-		return (false);
++		int result = libusb_set_interface_alt_setting(deviceHandle, interfaceIndex, altSettingIndex);
++		if (result != LIBUSB_SUCCESS)
++		{
++			Interface::PrintError("Setting up interface failed!\n");
++			return (false);
++		}
++	}
++	else
++	{
++		Interface::Print("Only one alternate, so already set.\n");
+ 	}
+ 
+ 	Interface::Print("\n");
+-- 
+GitLab
+

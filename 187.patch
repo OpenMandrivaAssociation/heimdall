@@ -1,0 +1,83 @@
+From cffc3220a78f93a1609280eb910b7267c011db5e Mon Sep 17 00:00:00 2001
+From: Juan Orti Alcaine <j.orti.alcaine@gmail.com>
+Date: Wed, 22 Jan 2014 15:50:36 +0100
+Subject: [PATCH 1/2] Add desktop and AppData files
+
+Add desktop and AppData files
+http://people.freedesktop.org/~hughsient/appdata/
+---
+ heimdall-frontend/heimdall.appdata.xml  | 18 ++++++++++++++++++
+ heimdall-frontend/heimdall.desktop      |  9 +++++++++
+ 3 files changed, 29 insertions(+)
+ create mode 100644 heimdall-frontend/heimdall.appdata.xml
+ create mode 100644 heimdall-frontend/heimdall.desktop
+
+diff --git a/heimdall-frontend/heimdall.appdata.xml b/heimdall-frontend/heimdall.appdata.xml
+new file mode 100644
+index 0000000..4576029
+--- /dev/null
++++ b/heimdall-frontend/heimdall.appdata.xml
+@@ -0,0 +1,18 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<application>
++ <id type="desktop">heimdall.desktop</id>
++ <licence>MIT</licence>
++ <name>Heimdall</name>
++ <summary>Flash firmware onto Samsung mobile devices</summary>
++ <description>
++  <p>
++   Heimdall is a cross-platform open-source tool suite used to flash
++   firmware (aka ROMs) onto Samsung mobile devices.
++  </p>
++ </description>
++ <screenshots>
++  <screenshot type="default" width="1275" height="718">http://jorti.fedorapeople.org/appdata/heimdall.png</screenshot>
++ </screenshots>
++ <url type="homepage">http://glassechidna.com.au/heimdall/</url>
++ <updatecontact>jorti@fedoraproject.org</updatecontact>
++</application>
+diff --git a/heimdall-frontend/heimdall.desktop b/heimdall-frontend/heimdall.desktop
+new file mode 100644
+index 0000000..ebb183b
+--- /dev/null
++++ b/heimdall-frontend/heimdall.desktop
+@@ -0,0 +1,9 @@
++[Desktop Entry]
++Name=Heimdall
++Comment=Flash firmware onto Samsung Galaxy S devices
++Comment[es]=Actualiza el firmware de dispositivos Samsung Galaxy S
++Exec=heimdall-frontend
++Icon=phone
++Terminal=false
++Type=Application
++Categories=Development;
+-- 
+GitLab
+
+
+From bd3fa34a5beabb43aefc99473e3f7a763660cf73 Mon Sep 17 00:00:00 2001
+From: Juan Orti Alcaine <juan.orti@miceliux.com>
+Date: Wed, 16 Jul 2014 08:42:45 +0200
+Subject: [PATCH 2/2] Fix license information in appdata
+
+---
+ heimdall-frontend/heimdall.appdata.xml | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/heimdall-frontend/heimdall.appdata.xml b/heimdall-frontend/heimdall.appdata.xml
+index 4576029..2d0c0d1 100644
+--- a/heimdall-frontend/heimdall.appdata.xml
++++ b/heimdall-frontend/heimdall.appdata.xml
+@@ -1,7 +1,8 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <application>
+  <id type="desktop">heimdall.desktop</id>
+- <licence>MIT</licence>
++ <metadata_license>CC0-1.0</metadata_license>
++ <project_license>MIT</project_license>
+  <name>Heimdall</name>
+  <summary>Flash firmware onto Samsung mobile devices</summary>
+  <description>
+-- 
+GitLab
+

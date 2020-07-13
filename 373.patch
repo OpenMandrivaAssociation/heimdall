@@ -1,0 +1,43 @@
+From 6b826dc1707840240438646b62011edb8fb87a53 Mon Sep 17 00:00:00 2001
+From: Spencer Shimko <spencer@quarksecurity.com>
+Date: Wed, 3 Sep 2014 15:59:32 -0400
+Subject: [PATCH] Fix Send/Recv function calls re: default values.
+
+Default parameter values in SendPacket and ReceivePacket
+were leading to confusion in the ReceivePit function.
+Empty transfer flags were passed in as timeouts.
+
+Additionally, on the GS5, empty transfers
+aren't required around the send ack packets
+during Pit retrieval, and actually screw up
+the state breaking the remainder of
+the session.
+---
+ heimdall/source/BridgeManager.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/heimdall/source/BridgeManager.cpp b/heimdall/source/BridgeManager.cpp
+index 9b8fdfa..b6a3a6d 100644
+--- a/heimdall/source/BridgeManager.cpp
++++ b/heimdall/source/BridgeManager.cpp
+@@ -916,7 +916,7 @@ int BridgeManager::ReceivePitFile(unsigned char **pitBuffer) const
+ 	for (unsigned int i = 0; i < transferCount; i++)
+ 	{
+ 		DumpPartPitFilePacket *requestPacket = new DumpPartPitFilePacket(i);
+-		success = SendPacket(requestPacket);
++		success = SendPacket(requestPacket, kDefaultTimeoutSend, kEmptyTransferNone);
+ 		delete requestPacket;
+ 
+ 		if (!success)
+@@ -929,7 +929,7 @@ int BridgeManager::ReceivePitFile(unsigned char **pitBuffer) const
+ 		int receiveEmptyTransferFlags = (i == transferCount - 1) ? kEmptyTransferAfter : kEmptyTransferNone;
+ 		
+ 		ReceiveFilePartPacket *receiveFilePartPacket = new ReceiveFilePartPacket();
+-		success = ReceivePacket(receiveFilePartPacket, receiveEmptyTransferFlags);
++		success = ReceivePacket(receiveFilePartPacket, kDefaultTimeoutReceive, receiveEmptyTransferFlags);
+ 		
+ 		if (!success)
+ 		{
+-- 
+GitLab
+

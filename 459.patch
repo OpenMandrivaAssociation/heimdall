@@ -1,0 +1,181 @@
+From 0fd207a478eac3fb8f38ece3f044e189780e8c77 Mon Sep 17 00:00:00 2001
+From: Rudolf Tammekivi <rtammekivi@gmail.com>
+Date: Wed, 13 Dec 2017 17:42:26 +0200
+Subject: [PATCH 1/2] heimdall: Odin protocol version 4 support
+
+---
+ heimdall/source/BeginSessionPacket.h | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/heimdall/source/BeginSessionPacket.h b/heimdall/source/BeginSessionPacket.h
+index 54e4372..f562075 100644
+--- a/heimdall/source/BeginSessionPacket.h
++++ b/heimdall/source/BeginSessionPacket.h
+@@ -28,11 +28,26 @@ namespace Heimdall
+ {
+ 	class BeginSessionPacket : public SessionSetupPacket
+ 	{
++		protected:
++
++			enum
++			{
++				kDataSize = SessionSetupPacket::kDataSize + 4
++			};
++
+ 		public:
+ 
+ 			BeginSessionPacket() : SessionSetupPacket(SessionSetupPacket::kBeginSession)
+ 			{
+ 			}
++
++			void Pack(void)
++			{
++				SessionSetupPacket::Pack();
++
++				/* Odin protocol version. */
++				PackInteger(SessionSetupPacket::kDataSize, 0x4);
++			}
+ 	};
+ }
+ 
+-- 
+GitLab
+
+
+From d8a14b556d9a16d1dc4501c1a1db4bc473efd1c1 Mon Sep 17 00:00:00 2001
+From: Mallon Lobjakas <Mallon.Lobjakas@teleplan.com>
+Date: Thu, 15 Feb 2018 17:10:14 +0200
+Subject: [PATCH 2/2] heimdall: Fix flashing firmwares bigger than 3.5GB
+
+---
+ heimdall/CMakeLists.txt              | 2 +-
+ heimdall/source/BridgeManager.cpp    | 2 +-
+ heimdall/source/FlashAction.cpp      | 8 ++++----
+ heimdall/source/SendFilePartPacket.h | 8 ++++----
+ heimdall/source/TotalBytesPacket.h   | 7 ++++---
+ 5 files changed, 14 insertions(+), 13 deletions(-)
+
+diff --git a/heimdall/CMakeLists.txt b/heimdall/CMakeLists.txt
+index 7aa1313..1548aa5 100644
+--- a/heimdall/CMakeLists.txt
++++ b/heimdall/CMakeLists.txt
+@@ -11,7 +11,7 @@ find_package(libusb REQUIRED)
+ set(LIBPIT_INCLUDE_DIRS
+     ../libpit/source)
+ 
+-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
++set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -D_FILE_OFFSET_BITS=64")
+ 
+ if(MINGW)
+     set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ -static")
+diff --git a/heimdall/source/BridgeManager.cpp b/heimdall/source/BridgeManager.cpp
+index 1b658c8..817c4ab 100644
+--- a/heimdall/source/BridgeManager.cpp
++++ b/heimdall/source/BridgeManager.cpp
+@@ -1024,7 +1024,7 @@ bool BridgeManager::SendFile(FILE *file, unsigned int destination, unsigned int
+ 	}
+ 
+ 	FileSeek(file, 0, SEEK_END);
+-	unsigned int fileSize = (unsigned int)FileTell(file);
++	unsigned long fileSize = (unsigned long)FileTell(file);
+ 	FileRewind(file);
+ 
+ 	ResponsePacket *fileTransferResponse = new ResponsePacket(ResponsePacket::kResponseTypeFileTransfer);
+diff --git a/heimdall/source/FlashAction.cpp b/heimdall/source/FlashAction.cpp
+index 5cc85fc..ca69489 100644
+--- a/heimdall/source/FlashAction.cpp
++++ b/heimdall/source/FlashAction.cpp
+@@ -147,19 +147,19 @@ static void closeFiles(vector<PartitionFile>& partitionFiles, FILE *& pitFile)
+ 
+ static bool sendTotalTransferSize(BridgeManager *bridgeManager, const vector<PartitionFile>& partitionFiles, FILE *pitFile, bool repartition)
+ {
+-	unsigned int totalBytes = 0;
++	unsigned long totalBytes = 0;
+ 
+ 	for (vector<PartitionFile>::const_iterator it = partitionFiles.begin(); it != partitionFiles.end(); it++)
+ 	{
+ 		FileSeek(it->file, 0, SEEK_END);
+-		totalBytes += (unsigned int)FileTell(it->file);
++		totalBytes += (unsigned long)FileTell(it->file);
+ 		FileRewind(it->file);
+ 	}
+ 
+ 	if (repartition)
+ 	{
+ 		FileSeek(pitFile, 0, SEEK_END);
+-		totalBytes += (unsigned int)FileTell(pitFile);
++		totalBytes += (unsigned long)FileTell(pitFile);
+ 		FileRewind(pitFile);
+ 	}
+ 
+@@ -320,7 +320,7 @@ static PitData *getPitData(BridgeManager *bridgeManager, FILE *pitFile, bool rep
+ 		// Load the local pit file into memory.
+ 
+ 		FileSeek(pitFile, 0, SEEK_END);
+-		unsigned int localPitFileSize = (unsigned int)FileTell(pitFile);
++		unsigned long localPitFileSize = (unsigned long)FileTell(pitFile);
+ 		FileRewind(pitFile);
+ 
+ 		unsigned char *pitFileBuffer = new unsigned char[localPitFileSize];
+diff --git a/heimdall/source/SendFilePartPacket.h b/heimdall/source/SendFilePartPacket.h
+index 9fe51b8..24db83a 100644
+--- a/heimdall/source/SendFilePartPacket.h
++++ b/heimdall/source/SendFilePartPacket.h
+@@ -34,18 +34,18 @@ namespace Heimdall
+ 	{
+ 		public:
+ 
+-			SendFilePartPacket(FILE *file, unsigned int size) : OutboundPacket(size)
++			SendFilePartPacket(FILE *file, unsigned long size) : OutboundPacket(size)
+ 			{
+ 				memset(data, 0, size);
+ 
+-				unsigned int position = (unsigned int)FileTell(file);
++				unsigned long position = (unsigned long)FileTell(file);
+ 
+ 				FileSeek(file, 0, SEEK_END);
+-				unsigned int fileSize = (unsigned int)FileTell(file);
++				unsigned long fileSize = (unsigned long)FileTell(file);
+ 				FileSeek(file, position, SEEK_SET);
+ 
+ 				// min(fileSize, size)
+-				unsigned int bytesToRead = (fileSize < size) ? fileSize - position : size;
++				unsigned long bytesToRead = (fileSize < size) ? fileSize - position : size;
+ 				(void)fread(data, 1, bytesToRead, file);
+ 			}
+ 
+diff --git a/heimdall/source/TotalBytesPacket.h b/heimdall/source/TotalBytesPacket.h
+index ccd21e2..f001fdb 100644
+--- a/heimdall/source/TotalBytesPacket.h
++++ b/heimdall/source/TotalBytesPacket.h
+@@ -30,16 +30,16 @@ namespace Heimdall
+ 	{
+ 		private:
+ 
+-			unsigned int totalBytes;
++			unsigned long totalBytes;
+ 
+ 		public:
+ 
+-			TotalBytesPacket(unsigned int totalBytes) : SessionSetupPacket(SessionSetupPacket::kTotalBytes)
++			TotalBytesPacket(unsigned long totalBytes) : SessionSetupPacket(SessionSetupPacket::kTotalBytes)
+ 			{
+ 				this->totalBytes = totalBytes;
+ 			}
+ 
+-			unsigned int GetTotalBytes(void) const
++			unsigned long GetTotalBytes(void) const
+ 			{
+ 				return (totalBytes);
+ 			}
+@@ -49,6 +49,7 @@ namespace Heimdall
+ 				SessionSetupPacket::Pack();
+ 
+ 				PackInteger(SessionSetupPacket::kDataSize, totalBytes);
++				PackInteger(SessionSetupPacket::kDataSize + 4, totalBytes>>32);
+ 			}
+ 	};
+ }
+-- 
+GitLab
+

@@ -1,0 +1,215 @@
+From 996844d4e5c47f36cc88cbacd1977bba0928970d Mon Sep 17 00:00:00 2001
+From: iamtag <itag@qq.com>
+Date: Mon, 3 Nov 2014 18:59:16 -0800
+Subject: [PATCH 1/2] to fix different model
+ SendPacket(kEmptyTransferBefore/After) use below method to detect this
+ differents, call kEmptyTransferBeforeAndAfter in SEND_TOTAL_BYTES of flow, if
+ fail at after, it is only support kEmptyTransferBefore; else it is only
+ support kEmptyTransferAfter.
+
+---
+ heimdall/source/BridgeManager.cpp | 42 +++++++++++++++++++++++--------
+ heimdall/source/BridgeManager.h   | 26 ++++++++++++-------
+ heimdall/source/FlashAction.cpp   |  5 +++-
+ 3 files changed, 52 insertions(+), 21 deletions(-)
+
+diff --git a/heimdall/source/BridgeManager.cpp b/heimdall/source/BridgeManager.cpp
+index 9b8fdfa..597c6a6 100644
+--- a/heimdall/source/BridgeManager.cpp
++++ b/heimdall/source/BridgeManager.cpp
+@@ -63,7 +63,8 @@ using namespace Heimdall;
+ const DeviceIdentifier BridgeManager::supportedDevices[BridgeManager::kSupportedDeviceCount] = {
+ 	DeviceIdentifier(BridgeManager::kVidSamsung, BridgeManager::kPidGalaxyS),
+ 	DeviceIdentifier(BridgeManager::kVidSamsung, BridgeManager::kPidGalaxyS2),
+-	DeviceIdentifier(BridgeManager::kVidSamsung, BridgeManager::kPidDroidCharge)
++	DeviceIdentifier(BridgeManager::kVidSamsung, BridgeManager::kPidDroidCharge),
++	DeviceIdentifier(BridgeManager::kVidSamsung, BridgeManager::kPidI879),
+ };
+ 
+ enum
+@@ -688,6 +689,13 @@ int BridgeManager::ReceiveBulkTransfer(unsigned char *data, int length, int time
+ 
+ bool BridgeManager::SendPacket(OutboundPacket *packet, int timeout, int emptyTransferFlags) const
+ {
++	static int g_defaultEmptyTransferFlags = kEmptyTransferBefore;
++
++	if (kEmptyTransferBySetting == emptyTransferFlags)
++	{
++		emptyTransferFlags = g_defaultEmptyTransferFlags;
++	}
++	
+ 	packet->Pack();
+ 
+ 	if (emptyTransferFlags & kEmptyTransferBefore)
+@@ -703,10 +711,16 @@ bool BridgeManager::SendPacket(OutboundPacket *packet, int timeout, int emptyTra
+ 
+ 	if (emptyTransferFlags & kEmptyTransferAfter)
+ 	{
+-		if (!SendBulkTransfer(nullptr, 0, kDefaultTimeoutEmptyTransfer, false) && verbose)
++		const bool bRET = SendBulkTransfer(nullptr, 0, kDefaultTimeoutEmptyTransfer, false);
++		if (!bRET && verbose)
+ 		{
+ 			Interface::PrintWarning("Empty bulk transfer after sending packet failed. Continuing anyway...\n");
+ 		}
++		if (kEmptyTransferSetSetting == emptyTransferFlags)
++		{
++			g_defaultEmptyTransferFlags = (bRET ? kEmptyTransferAfter : kEmptyTransferBefore);
++			Interface::PrintWarning("Setting protocol to %d\n", g_defaultEmptyTransferFlags);			
++		}
+ 	}
+ 
+ 	return (true);
+@@ -744,7 +758,9 @@ bool BridgeManager::ReceivePacket(InboundPacket *packet, int timeout, int emptyT
+ 
+ 	if (emptyTransferFlags & kEmptyTransferAfter)
+ 	{
+-		if (ReceiveBulkTransfer(nullptr, 0, kDefaultTimeoutEmptyTransfer, false) < 0 && verbose)
++		//***** FIX BUG *****
++		unsigned char szTempBuffer[16];
++		if (ReceiveBulkTransfer(szTempBuffer, sizeof(szTempBuffer), kDefaultTimeoutEmptyTransfer, false) < 0 && verbose)
+ 		{
+ 			Interface::PrintWarning("Empty bulk transfer after receiving packet failed. Continuing anyway...\n");
+ 		}
+@@ -1082,7 +1099,9 @@ bool BridgeManager::SendFile(FILE *file, unsigned int destination, unsigned int
+ 
+ 			// Send
+ 			SendFilePartPacket *sendFilePartPacket = new SendFilePartPacket(file, fileTransferPacketSize);
+-			success = SendPacket(sendFilePartPacket, kDefaultTimeoutSend, sendEmptyTransferFlags);
++			//***** SEND FILE BLOCK *****
++			//success = SendPacket(sendFilePartPacket, kDefaultTimeoutSend, sendEmptyTransferFlags);
++			success = SendPacket(sendFilePartPacket);//SH-G7108
+ 			delete sendFilePartPacket;
+ 
+ 			if (!success)
+@@ -1181,8 +1200,9 @@ bool BridgeManager::SendFile(FILE *file, unsigned int destination, unsigned int
+ 		if (destination == EndFileTransferPacket::kDestinationPhone)
+ 		{
+ 			EndPhoneFileTransferPacket *endPhoneFileTransferPacket = new EndPhoneFileTransferPacket(sequenceEffectiveByteCount, 0, deviceType, fileIdentifier, isLastSequence);
+-
+-			success = SendPacket(endPhoneFileTransferPacket, kDefaultTimeoutSend, kEmptyTransferBeforeAndAfter);
++			//***** SEND FILE END *****
++			//success = SendPacket(endPhoneFileTransferPacket, kDefaultTimeoutSend, kEmptyTransferBeforeAndAfter);
++			success = SendPacket(endPhoneFileTransferPacket);//SH-G7108
+ 			delete endPhoneFileTransferPacket;
+ 
+ 			if (!success)
+diff --git a/heimdall/source/BridgeManager.h b/heimdall/source/BridgeManager.h
+index 840fb5e..34d701f 100644
+--- a/heimdall/source/BridgeManager.h
++++ b/heimdall/source/BridgeManager.h
+@@ -56,7 +56,7 @@ namespace Heimdall
+ 
+ 			enum
+ 			{
+-				kSupportedDeviceCount = 3
++				kSupportedDeviceCount = 4
+ 			};
+ 
+ 			enum
+@@ -73,19 +73,20 @@ namespace Heimdall
+ 
+ 			enum
+ 			{
+-				kPidGalaxyS = 0x6601,
+-				kPidGalaxyS2 = 0x685D,
+-				kPidDroidCharge = 0x68C3
++				kPidGalaxyS		    = 0x6601,
++				kPidGalaxyS2        = 0x685D,
++				kPidI879            = 0x6868,
++				kPidDroidCharge     = 0x68C3,
+ 			};
+ 
+ 			enum
+ 			{
++				kDefaultTimeoutEmptyTransfer = 100,
+ 				kDefaultTimeoutSend = 3000,
+-				kDefaultTimeoutReceive = 3000,
+-				kDefaultTimeoutEmptyTransfer = 100
++				kDefaultTimeoutReceive = kDefaultTimeoutSend, //3000,
+ 			};
+ 
+-			enum class UsbLogLevel
++			enum /*class*/ UsbLogLevel
+ 			{
+ 				None = 0,
+ 				Error,
+@@ -101,7 +102,13 @@ namespace Heimdall
+ 				kEmptyTransferNone = 0,
+ 				kEmptyTransferBefore = 1,
+ 				kEmptyTransferAfter = 1 << 1,
+-				kEmptyTransferBeforeAndAfter = kEmptyTransferBefore | kEmptyTransferAfter
++				kEmptyTransferBeforeAndAfter = kEmptyTransferBefore | kEmptyTransferAfter,
++				//use default setting every call				
++				kEmptyTransferBySetting = 0x100,
++				//call kEmptyTransferBeforeAndAfter in SEND_TOTAL_BYTES of flow, 
++				//if fail at after, it's only support kEmptyTransferBefore
++				//else only support kEmptyTransferAfter
++				kEmptyTransferSetSetting = kEmptyTransferBeforeAndAfter | kEmptyTransferBySetting,
+ 			};
+ 
+ 		private:
+@@ -154,7 +161,8 @@ namespace Heimdall
+ 			bool BeginSession(void);
+ 			bool EndSession(bool reboot) const;
+ 
+-			bool SendPacket(OutboundPacket *packet, int timeout = kDefaultTimeoutSend, int emptyTransferFlags = kEmptyTransferAfter) const;
++			//bool SendPacket(OutboundPacket *packet, int timeout = kDefaultTimeoutSend, int emptyTransferFlags = kEmptyTransferAfter) const;
++			bool SendPacket(OutboundPacket *packet, int timeout = kDefaultTimeoutSend, int emptyTransferFlags = kEmptyTransferBySetting) const;//SH-G7108
+ 			bool ReceivePacket(InboundPacket *packet, int timeout = kDefaultTimeoutReceive, int emptyTransferFlags = kEmptyTransferNone) const;
+ 
+ 			bool RequestDeviceType(unsigned int request, int *result) const;
+diff --git a/heimdall/source/FlashAction.cpp b/heimdall/source/FlashAction.cpp
+index 590e0b5..c272c4e 100644
+--- a/heimdall/source/FlashAction.cpp
++++ b/heimdall/source/FlashAction.cpp
+@@ -163,7 +163,10 @@ static bool sendTotalTransferSize(BridgeManager *bridgeManager, const vector<Par
+ 	bool success;
+ 	
+ 	TotalBytesPacket *totalBytesPacket = new TotalBytesPacket(totalBytes);
+-	success = bridgeManager->SendPacket(totalBytesPacket);
++	//***** SEND TOTAL BYTES *****
++	success = bridgeManager->SendPacket(totalBytesPacket, 
++		BridgeManager::kDefaultTimeoutSend, 
++		BridgeManager::kEmptyTransferSetSetting);
+ 	delete totalBytesPacket;
+ 
+ 	if (!success)
+-- 
+GitLab
+
+
+From e652fe31fd1998144bd46702b75c6e35669640e0 Mon Sep 17 00:00:00 2001
+From: iamtag <itag@qq.com>
+Date: Tue, 4 Nov 2014 17:29:16 -0800
+Subject: [PATCH 2/2] to fix for i9100(compatible)
+
+---
+ heimdall/source/BridgeManager.cpp | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/heimdall/source/BridgeManager.cpp b/heimdall/source/BridgeManager.cpp
+index 597c6a6..c12452a 100644
+--- a/heimdall/source/BridgeManager.cpp
++++ b/heimdall/source/BridgeManager.cpp
+@@ -1099,9 +1099,7 @@ bool BridgeManager::SendFile(FILE *file, unsigned int destination, unsigned int
+ 
+ 			// Send
+ 			SendFilePartPacket *sendFilePartPacket = new SendFilePartPacket(file, fileTransferPacketSize);
+-			//***** SEND FILE BLOCK *****
+-			//success = SendPacket(sendFilePartPacket, kDefaultTimeoutSend, sendEmptyTransferFlags);
+-			success = SendPacket(sendFilePartPacket);//SH-G7108
++			success = SendPacket(sendFilePartPacket, kDefaultTimeoutSend, sendEmptyTransferFlags);
+ 			delete sendFilePartPacket;
+ 
+ 			if (!success)
+@@ -1115,7 +1113,6 @@ bool BridgeManager::SendFile(FILE *file, unsigned int destination, unsigned int
+ 			SendFilePartResponse *sendFilePartResponse = new SendFilePartResponse();
+ 			success = ReceivePacket(sendFilePartResponse);
+ 			int receivedPartIndex = sendFilePartResponse->GetPartIndex();
+-
+ 			delete sendFilePartResponse;
+ 
+ 			if (!success)
+-- 
+GitLab
+

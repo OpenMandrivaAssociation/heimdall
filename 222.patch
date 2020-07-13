@@ -1,0 +1,92 @@
+From f0545c2b7c9c9fc1cb051a9aee7f492409665f5c Mon Sep 17 00:00:00 2001
+From: Jeff Cliff <jeffrey.cliff@gmail.com>
+Date: Sun, 10 Aug 2014 21:08:09 -0400
+Subject: [PATCH 1/2] Added minor error handling for libUSB issues during
+ initialize.  It sends back errors, might as well use them.
+
+---
+ heimdall/source/BridgeManager.cpp | 35 ++++++++++++++++++++++++++++++-
+ 1 file changed, 34 insertions(+), 1 deletion(-)
+
+diff --git a/heimdall/source/BridgeManager.cpp b/heimdall/source/BridgeManager.cpp
+index 9b8fdfa..de8dfa4 100644
+--- a/heimdall/source/BridgeManager.cpp
++++ b/heimdall/source/BridgeManager.cpp
+@@ -291,6 +291,39 @@ void BridgeManager::ReleaseDeviceInterface(void)
+ 	Interface::Print("\n");
+ }
+ 
++void BridgeManager::handleLibUSBError(int result)
++{
++  if ((result == LIBUSB_ERROR_TIMEOUT) 
++	 || (result == LIBUSB_ERROR_PIPE)
++	 || (result == LIBUSB_ERROR_OVERFLOW)
++	 || (result == LIBUSB_ERROR_NO_DEVICE))
++    //	 || (result == LIBUSB_ERROR))
++    { 
++		Interface::PrintError(
++						  (result ==  LIBUSB_ERROR_NO_DEVICE) ?
++						  "Failed to receive handshake response.\nUSB error:no device\n" 
++						  : 
++						  (result == LIBUSB_ERROR_OVERFLOW) ?
++						  "Failed to receive handshake response.\nUSB error:overflow\n"
++						  : 
++						  (result == LIBUSB_ERROR_PIPE) ?
++						  "Failed to receive handshake response.\nUSB error:pipe\n"
++						  :
++						  (result == LIBUSB_ERROR_TIMEOUT) ?
++						  "Failed to receive handshake response.\nUSB error:timeout\n"
++						  :
++						  //						  (result == LIBUSB_ERROR) ? 
++						  //						  "Failed to receive handshake response. USB general error"
++						  //						  :
++						  "Failed to receive handshake response. Result: %d\n"
++						  , result);
++    }
++  else 
++    {
++	 Interface::PrintError("Failed to receive handshake response. Result: %d\n", result);
++    }
++}
++
+ bool BridgeManager::InitialiseProtocol(void)
+ {
+ 	Interface::Print("Initialising protocol...\n");
+@@ -316,7 +349,7 @@ bool BridgeManager::InitialiseProtocol(void)
+ 	if (result != LIBUSB_SUCCESS)
+ 	{
+ 		if (verbose)
+-			Interface::PrintError("Failed to receive handshake response. Result: %d\n", result);
++		  handleLibUSBError(result);
+ 	}
+ 	else
+ 	{
+-- 
+GitLab
+
+
+From 39a0901761e9fbdde180e03671b1d6b010416022 Mon Sep 17 00:00:00 2001
+From: Jeff Cliff <jeffrey.cliff@gmail.com>
+Date: Sun, 10 Aug 2014 21:15:18 -0400
+Subject: [PATCH 2/2] not sure if this actually changed the first time
+
+---
+ heimdall/source/BridgeManager.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/heimdall/source/BridgeManager.h b/heimdall/source/BridgeManager.h
+index 840fb5e..91481c2 100644
+--- a/heimdall/source/BridgeManager.h
++++ b/heimdall/source/BridgeManager.h
+@@ -105,7 +105,7 @@ namespace Heimdall
+ 			};
+ 
+ 		private:
+-
++			void handleLibUSBError(int);
+ 			static const DeviceIdentifier supportedDevices[kSupportedDeviceCount];
+ 
+ 			bool verbose;
+-- 
+GitLab
+

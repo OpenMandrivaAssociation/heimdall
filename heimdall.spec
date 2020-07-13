@@ -7,13 +7,20 @@ Version:	1.4.2
 %if "%prerel" != ""
 Release:	0.%prerel.1
 %else
-Release:	2
+Release:	3
 %endif
 Summary:	Flash firmware (aka ROMs) onto Samsung Galaxy S devices
 Group:		Development/Other
 License:	MIT
 URL:		http://www.glassechidna.com.au/products/%{name}/
 Source0:	https://gitlab.com/BenjaminDobell/Heimdall/-/archive/v%{version}/Heimdall-v%{version}.tar.bz2
+Patch0:		https://gitlab.com/BenjaminDobell/Heimdall/-/merge_requests/187.patch
+Patch1:		https://gitlab.com/BenjaminDobell/Heimdall/-/merge_requests/222.patch
+Patch2:		https://gitlab.com/BenjaminDobell/Heimdall/-/merge_requests/227.patch
+Patch3:		https://gitlab.com/BenjaminDobell/Heimdall/-/merge_requests/240.patch
+Patch4:		https://gitlab.com/BenjaminDobell/Heimdall/-/merge_requests/329.patch
+Patch5:		https://gitlab.com/BenjaminDobell/Heimdall/-/merge_requests/459.patch
+Patch6:		https://gitlab.com/BenjaminDobell/Heimdall/-/merge_requests/477.patch
 BuildRequires:	pkgconfig(libusb-1.0)
 BuildRequires:	dos2unix
 BuildRequires:	cmake
