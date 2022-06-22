@@ -7,7 +7,7 @@ Version:	1.4.2
 %if "%prerel" != ""
 Release:	0.%prerel.1
 %else
-Release:	3
+Release:	4
 %endif
 Summary:	Flash firmware (aka ROMs) onto Samsung Galaxy S devices
 Group:		Development/Other
