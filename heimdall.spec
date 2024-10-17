@@ -12,7 +12,7 @@ Release:	4
 Summary:	Flash firmware (aka ROMs) onto Samsung Galaxy S devices
 Group:		Development/Other
 License:	MIT
-URL:		http://www.glassechidna.com.au/products/%{name}/
+URL:		https://www.glassechidna.com.au/products/%{name}/
 Source0:	https://gitlab.com/BenjaminDobell/Heimdall/-/archive/v%{version}/Heimdall-v%{version}.tar.bz2
 Patch0:		https://gitlab.com/BenjaminDobell/Heimdall/-/merge_requests/187.patch
 Patch1:		https://gitlab.com/BenjaminDobell/Heimdall/-/merge_requests/222.patch
